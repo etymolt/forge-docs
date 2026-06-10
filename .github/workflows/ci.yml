@@ -1,0 +1,34 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Markdown link check (informational)
+        continue-on-error: true
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+          config-file: '.github/mlc_config.json'
+      - name: Markdown syntax sanity
+        shell: bash
+        run: |
+          # Every .md must be readable UTF-8 and contain at least 1 byte.
+          set -e
+          shopt -s globstar nullglob
+          fail=0
+          for f in **/*.md *.md; do
+            [ -f "$f" ] || continue
+            if [ ! -s "$f" ]; then echo "EMPTY: $f"; fail=1; continue; fi
+            if ! python3 -c "open('$f',encoding='utf-8').read()" 2>/dev/null; then
+              echo "NOT-UTF8: $f"; fail=1
+            fi
+          done
+          exit $fail
